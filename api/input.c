@@ -82,7 +82,6 @@ void button_init(void)
 }
 
 
-//3 exti, ako se moze preko jednog, polling
 void EXTI2_IRQHandler(void)
 {
 	if (EXTI_GetITStatus(EXTI_Line2) != RESET)
@@ -90,6 +89,7 @@ void EXTI2_IRQHandler(void)
 		EXTI_ClearITPendingBit(EXTI_Line2);
 		queue(EXTI2_IRQn);
 		
+		//test
 		gpio_led_toggle(1);
 	}
 }
@@ -101,6 +101,7 @@ void EXTI3_IRQHandler(void)
 		EXTI_ClearITPendingBit(EXTI_Line3);
 		queue(EXTI3_IRQn);
 		
+		//test
 		gpio_led_toggle(2);
 	}
 }
@@ -112,10 +113,12 @@ void EXTI4_IRQHandler(void)
 	{
 		EXTI_ClearITPendingBit(EXTI_Line4);
 		//queue(EXTI4_IRQn);
-		//za test bez timera:
+		
+		//za test bez timera - kad treca tipka oslobada prve dvije:
 		dequeue();
 		//promijeni trenutni blok - inace radi timer
 		wait_queue ^= 0x02;
+		
 	}
 }
 
@@ -141,23 +144,31 @@ static void queue(uint32_t irq){
 		top = top >> 3;
 	
 	wait_queue |= top;
+	
+	//pokreni timer na zadani delay
 }
 
 static void dequeue(void){
 	uint8_t top = wait_queue;
 	
-	if (wait_queue & 0x02){
+	if (!(wait_queue & 0x02)){
 			top = top << 3;
 			wait_queue &= 0xE3;
 	}
 	else wait_queue &= 0x1F;
 	
-	if (top & 0x80)
+	if (top & 0x80){
+		EXTI_ClearITPendingBit(EXTI_Line2);
 		NVIC_EnableIRQ(EXTI2_IRQn);
-	if (top & 0x40)
+	}
+	if (top & 0x40){
+		EXTI_ClearITPendingBit(EXTI_Line3);
 		NVIC_EnableIRQ(EXTI3_IRQn);
-	if (top & 0x20)
+	}
+	if (top & 0x20){
+		EXTI_ClearITPendingBit(EXTI_Line4);
 		NVIC_EnableIRQ(EXTI4_IRQn);
+	}
 	
 }
 
